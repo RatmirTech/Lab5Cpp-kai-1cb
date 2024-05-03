@@ -1,14 +1,15 @@
 #include "task264.h"
+#include "constants.h"
+#include <direct.h> 
 #include <iostream>
 #include <fstream>
 #include <string>
 #include <vector>
 #include <regex>
-#include "constants.h"
-#include <direct.h> 
+
 using namespace std;
 
-string readFromConsole() {
+extern string readConsole() {
 	string input;
 	do {
 		cout << "Введите строку с символами (для удаления текста в скобках): ";
@@ -52,7 +53,7 @@ string removeParentheses(const string& input) {
 	return result;
 }
 
-string readFromFile(const string& fileName) {
+extern string readFile(const string& fileName) {
 	ifstream file(fileName);
 	string content, line;
 
@@ -71,7 +72,7 @@ string readFromFile(const string& fileName) {
 
 }
 
-string getPathFromUser(const string& prompt, const string& defaultPath) {
+extern string getUserPath(const string& prompt, const string& defaultPath) {
 	string path;
 	cout << prompt << " [" << defaultPath << "]: ";
 	getline(cin, path);
@@ -81,11 +82,11 @@ string getPathFromUser(const string& prompt, const string& defaultPath) {
 	return path;
 }
 
-void writeToConsole(const string& output) {
+extern void writeConsole(const string& output) {
 	cout << "Результат: " << output << endl;
 }
 
-void writeToFile(const string& output, const string& fileName) {
+extern void writeFile(const string& output, const string& fileName) {
 	ofstream file(fileName);
 
 	if (file.is_open()) {
@@ -121,16 +122,16 @@ void init264() {
 
 		string dataBuffer;
 		if (in_option == '1') {
-			dataBuffer = readFromConsole();
+			dataBuffer = readConsole();
 		}
 		else {
-			string filePath = getPathFromUser("Укажите файл для ввода исходных данных для работы программы", MyConstants::defaultTask264Input);
+			string filePath = getUserPath("Укажите файл для ввода исходных данных для работы программы", MyConstants::defaultTask264Input);
 			ifstream testFile(filePath);
 			if (!testFile) {
 				cerr << "Ошибка: файл не найден или не доступен для чтения: " << filePath << endl;
 				continue;
 			}
-			dataBuffer = readFromFile(filePath);
+			dataBuffer = readFile(filePath);
 			if (dataBuffer == "") {
 				cout << "Ошибка пустой файл, начните ввод заново.\n";
 				exit(1);
@@ -140,12 +141,12 @@ void init264() {
 		string outputData = removeParentheses(dataBuffer);
 
 		if (out_option == '1') {
-			writeToConsole(outputData);
+			writeConsole(outputData);
 		}
 		else {
-			string filePath = getPathFromUser("Укажите файл для вывода результатов работы программы", MyConstants::defaultTask264Output);
+			string filePath = getUserPath("Укажите файл для вывода результатов работы программы", MyConstants::defaultTask264Output);
 			ofstream testFile(filePath, ios::out | ios::trunc);
-			writeToFile(outputData, filePath);
+			writeFile(outputData, filePath);
 		}
 
 		if (in_option == '1') {
