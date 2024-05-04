@@ -69,7 +69,6 @@ extern string readFile(const string& fileName) {
 	regex pattern(R"(\((?:[^()]*)\))");
 	if (regex_search(content, pattern))	return content;
 	else	return "";
-
 }
 
 extern string getUserPath(const string& prompt, const string& defaultPath) {
