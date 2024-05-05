@@ -318,8 +318,8 @@ void init417() {
 		}
 
 		auto result = processData(dataBuffer, generateMatrix);
-		array<pair<int, int>, MAX_POINTS> points = result.first;
-		array<array<int, MAX_POINTS>, MAX_POINTS> matrix = result.second;
+		array<pair<int, int>, MAX_POINTS> points{ result.first };
+		array<array<int, MAX_POINTS>, MAX_POINTS> matrix{ result.second };
 
 		size_t point_count = static_cast<size_t>(count_if(points.begin(), points.end(),
 			[](const pair<int, int>& p) { return p.first != 0 || p.second != 0; }));

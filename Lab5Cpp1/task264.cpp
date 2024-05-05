@@ -10,12 +10,12 @@
 using namespace std;
 
 extern string readConsole() {
-	string input;
+	string input{};
 	do {
 		cout << "¬ведите строку с символами (дл€ удалени€ текста в скобках): ";
 		getline(cin, input);
 
-		regex pattern(R"(\((?:[^()]*)\))");
+		regex pattern{ R"(\((?:[^()]*)\))" };
 		if (input.empty() || !regex_search(input, pattern)) {
 			cerr << "ќшибка: ¬ведите строку с хот€ бы одним символом и с парными скобками, содержащую символы вне скобок.\n";
 		}
@@ -72,7 +72,7 @@ extern string readFile(const string& fileName) {
 }
 
 extern string getUserPath(const string& prompt, const string& defaultPath) {
-	string path;
+	string path{};
 	cout << prompt << " [" << defaultPath << "]: ";
 	getline(cin, path);
 	if (path.empty()) {
