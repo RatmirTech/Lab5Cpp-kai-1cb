@@ -5,39 +5,73 @@
 #include <regex>
 #include <fstream>
 #include <sstream>
-#include <vector>
 #include <utility>
 #include "SFML/Graphics.hpp"
+#include <array>
+#include <cmath>
 
 using namespace std;
+using namespace sf;
 
-void drawWithSFML(const vector<pair<int, int>>& points, const vector<vector<int>>& matrix) {
-	sf::RenderWindow window(sf::VideoMode(800, 600), "Task 417 Visualization");
-	sf::VertexArray lines(sf::Lines);
+void saveDrawingToFile(const array<pair<int, int>, MAX_POINTS>& points, size_t point_count, const array<array<int, MAX_POINTS>, MAX_POINTS>& matrix, const string& filePath) {
+	const int width = 800, height = 600;
+	RenderTexture renderTexture;
+	renderTexture.create(width, height);
+	renderTexture.clear(Color::White);
+
+	VertexArray lines(Lines);
+	for (size_t i = 0; i < point_count; ++i) {
+		for (size_t j = 0; j < point_count; ++j) {
+			if (matrix[i][j] == 1) {
+				Vertex lineStart(Vector2f(points[i].first, points[i].second), Color::Black);
+				Vertex lineEnd(Vector2f(points[j].first, points[j].second), Color::Black);
+				lines.append(lineStart);
+				lines.append(lineEnd);
+			}
+		}
+	}
+	for (size_t i = 0; i < point_count; ++i) {
+		CircleShape shape(5);
+		shape.setPosition(static_cast<float>(points[i].first) - 5, static_cast<float>(points[i].second) - 5);
+		shape.setFillColor(Color::Red);
+		renderTexture.draw(shape);
+	}
+
+
+	renderTexture.draw(lines);
+	renderTexture.display();
+
+	Texture texture = renderTexture.getTexture();
+	Image image = texture.copyToImage();
+	image.saveToFile(filePath);
+}
+
+void drawWithSFML(const array<pair<int, int>, MAX_POINTS>& points, size_t point_count, const array<array<int, MAX_POINTS>, MAX_POINTS>& matrix) {
+	RenderWindow window(VideoMode(800, 600), "Task 417 Visualization");
+	VertexArray lines(Lines);
 
 	while (window.isOpen()) {
-		sf::Event event;
+		Event event;
 		while (window.pollEvent(event)) {
-			if (event.type == sf::Event::Closed)
+			if (event.type == Event::Closed)
 				window.close();
 		}
 
-		window.clear(sf::Color::White);
-		for (size_t i = 0; i < points.size(); ++i) {
-			for (size_t j = 0; j < points.size(); ++j) {
+		window.clear(Color::White);
+		for (size_t i = 0; i < point_count; ++i) {
+			for (size_t j = 0; j < point_count; ++j) {
 				if (matrix[i][j] == 1) {
-					sf::Vertex lineStart(sf::Vector2f(points[i].first, points[i].second), sf::Color::Black);
-					sf::Vertex lineEnd(sf::Vector2f(points[j].first, points[j].second), sf::Color::Black);
+					Vertex lineStart(Vector2f(points[i].first, points[i].second), Color::Black);
+					Vertex lineEnd(Vector2f(points[j].first, points[j].second), Color::Black);
 					lines.append(lineStart);
 					lines.append(lineEnd);
 				}
 			}
 		}
-
-		for (const auto& point : points) {
-			sf::CircleShape shape(5);
-			shape.setPosition(static_cast<float>(point.first) - 5, static_cast<float>(point.second) - 5);
-			shape.setFillColor(sf::Color::Red);
+		for (size_t i = 0; i < point_count; ++i) {
+			CircleShape shape(5);
+			shape.setPosition(static_cast<float>(points[i].first) - 5, static_cast<float>(points[i].second) - 5);
+			shape.setFillColor(Color::Red);
 			window.draw(shape);
 		}
 
@@ -46,27 +80,27 @@ void drawWithSFML(const vector<pair<int, int>>& points, const vector<vector<int>
 	}
 }
 
-void printPointsAndMatrix(const vector<pair<int, int>>& points, const vector<vector<int>>& matrix) {
+void printPointsAndMatrix(const array<pair<int, int>, MAX_POINTS>& points, const array<array<int, MAX_POINTS>, MAX_POINTS>& matrix) {
 	cout << "Координаты точек:" << endl;
-	for (const auto& point : points) {
-		cout << point.first << " " << point.second << endl;
+	for (size_t i = 0; i < points.size(); i++) {
+		cout << points[i].first << " " << points[i].second << endl;
 	}
 
 	cout << "Матрица смежности:" << endl;
-	for (const auto& row : matrix) {
-		for (int val : row) {
-			cout << val << " ";
+	for (size_t i = 0; i < matrix.size(); i++) {
+		for (size_t j = 0; j < matrix[i].size(); j++) {
+			cout << matrix[i][j] << " ";
 		}
 		cout << endl;
 	}
 }
 
-
 string readFromConsole() {
 	regex pattern("^([1-9][0-9]* [1-9][0-9]*(, [1-9][0-9]* [1-9][0-9]*)*)$");
 	string input;
-	vector<pair<int, int>> points;
+	array<pair<int, int>, MAX_POINTS> points;
 	string line;
+	int point_count = 0;
 
 	while (true) {
 		cout << "Введите координаты точек в формате 'x y, x y, ...': ";
@@ -78,48 +112,106 @@ string readFromConsole() {
 	}
 
 	stringstream ss(input);
-	while (getline(ss, line, ',')) {
+	while (getline(ss, line, ',') && point_count < MAX_POINTS) {
 		stringstream coordStream(line);
 		int x, y;
 		coordStream >> x >> y;
-		points.push_back({ x, y });
+		points[point_count] = { x, y };
+		++point_count;
 	}
 
 	stringstream result;
-	result << points.size() << '\n';
-	for (const auto& p : points) {
-		result << p.first << ' ' << p.second << '\n';
+	result << point_count << '\n';
+	for (int i = 0; i < point_count; i++) {
+		result << points[i].first << ' ' << points[i].second << '\n';
 	}
 
-	vector<vector<int>> matrix(points.size(), vector<int>(points.size(), 0));
-	for (size_t i = 0; i < points.size(); ++i) {
-		for (size_t j = i + 1; j < points.size(); ++j) {
-			matrix[i][j] = matrix[j][i] = (i + 1) % 2;
-		}
-	}
+	//array<array<int, MAX_POINTS>, MAX_POINTS> matrix;
+	//for (int i = 0; i < point_count; ++i) {
+	//	for (int j = 0; j < point_count; ++j) {
+	//		matrix[i][j] = (i != j) ? (rand() % 2) : 0;
+	//	}
+	//}
 
-	for (const auto& row : matrix) {
-		for (const auto& val : row) {
-			result << val << ' ';
-		}
-		result << '\n';
-	}
+	//for (int i = 0; i < point_count; i++) {
+	//	for (int j = 0; j < point_count; j++) {
+	//		result << matrix[i][j] << ' ';
+	//	}
+	//	result << '\n';
+	//}
+
+	//cout << "Входные данные: " << endl << result.str() << endl << "Конец входных данных" << endl;
 
 	return result.str();
 }
 
 string readFromFile(const string& filePath) {
 	ifstream file(filePath);
-	stringstream buffer;
-	if (file) {
-		buffer << file.rdbuf();
-		file.close();
-		return buffer.str();
-	}
-	else {
+	if (!file) {
 		cerr << "Ошибка: Не удалось открыть файл '" << filePath << "'." << endl;
 		exit(EXIT_FAILURE);
 	}
+
+	string line;
+	int line_count = 0;
+	int number_of_points;
+	std::array<std::pair<int, int>, MAX_POINTS> points;
+	std::array<std::array<int, MAX_POINTS>, MAX_POINTS> matrix;
+	regex points_pattern("^\\d+ \\d+$");
+	regex matrix_pattern("^([01] )+[01]$");
+
+	while (getline(file, line)) {
+		if (line_count == 0) {
+			if (!regex_match(line, regex("^\\d+$"))) {
+				cerr << "Ошибка: Первая строка должна содержать только одно число." << endl;
+				exit(EXIT_FAILURE);
+			}
+			number_of_points = stoi(line);
+			if (number_of_points > MAX_POINTS) {
+				cerr << "Ошибка: Количество точек превышает максимально допустимое значение." << endl;
+				exit(EXIT_FAILURE);
+			}
+		}
+		else if (line_count <= number_of_points) {
+			if (!regex_match(line, points_pattern)) {
+				cerr << "Ошибка: Координаты точек должны быть в формате 'x y'." << endl;
+				exit(EXIT_FAILURE);
+			}
+			istringstream iss(line);
+			int x, y;
+			iss >> x >> y;
+			points[line_count - 1] = { x, y };
+		}
+		else {
+			if (!regex_match(line, matrix_pattern) || count(line.begin(), line.end(), ' ') + 1 != number_of_points) {
+				cerr << "Ошибка: Строка матрицы смежности должна содержать " << number_of_points << " значений." << endl;
+				exit(EXIT_FAILURE);
+			}
+			istringstream iss(line);
+			for (int j = 0; j < number_of_points; j++) {
+				iss >> matrix[line_count - number_of_points - 1][j];
+			}
+		}
+		line_count++;
+	}
+
+	if (line_count - 1 != number_of_points * 2) {
+		cerr << "Ошибка: Количество строк в файле не соответствует ожидаемому." << endl;
+		exit(EXIT_FAILURE);
+	}
+
+	stringstream buffer;
+	buffer << number_of_points << '\n';
+	for (int i = 0; i < number_of_points; i++) {
+		buffer << points[i].first << ' ' << points[i].second << '\n';
+	}
+	for (int i = 0; i < number_of_points; i++) {
+		for (int j = 0; j < number_of_points; j++) {
+			buffer << matrix[i][j] << ' ';
+		}
+		buffer << '\n';
+	}
+	return buffer.str();
 }
 
 void writeToConsole(const string& outputData) {
@@ -143,60 +235,57 @@ string getPathFromUser(const string& prompt, const string& defaultPath) {
 	getline(cin, path);
 	return (path.empty() ? defaultPath : path);
 }
-
-pair<vector<pair<int, int>>, vector<vector<int>>> processData(const string& data) {
+pair<array<pair<int, int>, MAX_POINTS>, array<array<int, MAX_POINTS>, MAX_POINTS>> processData(const string& data, bool generateMatrix) {
 	stringstream ss(data);
 	int n;
 	ss >> n;
 
-	vector<pair<int, int>> points(n);
-	vector<vector<int>> matrix(n, vector<int>(n));
+	array<pair<int, int>, MAX_POINTS> points;
+	array<array<int, MAX_POINTS>, MAX_POINTS> matrix;
+
+	for (int i = 0; i < MAX_POINTS; i++) {
+		for (int j = 0; j < MAX_POINTS; j++) {
+			matrix[i][j] = 0;
+		}
+	}
 
 	for (int i = 0; i < n; i++) {
 		ss >> points[i].first >> points[i].second;
 	}
 
-	for (int i = 0; i < n; i++) {
-		for (int j = 0; j < n; j++) {
-			ss >> matrix[i][j];
+	if (!generateMatrix) {
+		for (int i = 0; i < n; i++) {
+			for (int j = 0; j < n; j++) {
+				ss >> matrix[i][j];
+			}
 		}
 	}
-
-	printPointsAndMatrix(points, matrix);
-	return make_pair(points, matrix);
-}
-
-void saveDrawingToFile(const vector<pair<int, int>>& points, const vector<vector<int>>& matrix, const string& filePath) {
-	const int width = 800, height = 600;
-	sf::RenderTexture renderTexture;
-	renderTexture.create(width, height);
-	renderTexture.clear(sf::Color::White);
-
-	sf::VertexArray lines(sf::Lines);
-	for (size_t i = 0; i < points.size(); ++i) {
-		for (size_t j = i + 1; j < points.size(); ++j) {
-			if (matrix[i][j] == 1) {
-				sf::Vertex lineStart(sf::Vector2f(points[i].first, points[i].second), sf::Color::Black);
-				sf::Vertex lineEnd(sf::Vector2f(points[j].first, points[j].second), sf::Color::Black);
-				lines.append(lineStart);
-				lines.append(lineEnd);
+	else {
+		for (int i = 0; i < n; i++) {
+			for (int j = i + 1; j < n; j++) {
+				int dx = points[i].first - points[j].first;
+				int dy = points[i].second - points[j].second;
+				if (sqrt(pow(dx, 2) + pow(dy, 2)) < 100) {
+					matrix[i][j] = matrix[j][i] = 1;
+				}
 			}
 		}
 	}
 
-	for (const auto& point : points) {
-		sf::CircleShape shape(5);
-		shape.setPosition(static_cast<float>(point.first) - 5, static_cast<float>(point.second) - 5);
-		shape.setFillColor(sf::Color::Red);
-		renderTexture.draw(shape);
+	cout << "Точки:\n";
+	for (int i = 0; i < n; i++) {
+		cout << "(" << points[i].first << ", " << points[i].second << ")\n";
 	}
 
-	renderTexture.draw(lines);
-	renderTexture.display();
+	cout << "Матрица смежности:\n";
+	for (int i = 0; i < n; i++) {
+		for (int j = 0; j < n; j++) {
+			cout << matrix[i][j] << " ";
+		}
+		cout << "\n";
+	}
 
-	sf::Texture texture = renderTexture.getTexture();
-	sf::Image image = texture.copyToImage();
-	image.saveToFile(filePath);
+	return { points, matrix };
 }
 
 void init417() {
@@ -204,7 +293,6 @@ void init417() {
 	string input;
 	char in_option, out_option;
 	char repeat_option = '1';
-
 	do {
 		do {
 			cout << "Введите '1' для ввода с консоли, '2' для ввода из файла: ";
@@ -218,6 +306,7 @@ void init417() {
 		} while (!regex_match(input, valid_input));
 		out_option = input[0];
 
+		bool generateMatrix{ (in_option == '1') };
 		string dataBuffer;
 		if (in_option == '1') {
 			dataBuffer = readFromConsole();
@@ -225,19 +314,23 @@ void init417() {
 		else {
 			string filePath = getPathFromUser("Укажите файл для ввода исходных данных для работы программы", MyConstants::defaultTask417Input);
 			dataBuffer = readFromFile(filePath);
+			generateMatrix = false;
 		}
 
-		auto result = processData(dataBuffer);
-		vector<pair<int, int>> points = result.first;
-		vector<vector<int>> matrix = result.second;
+		auto result = processData(dataBuffer, generateMatrix);
+		array<pair<int, int>, MAX_POINTS> points = result.first;
+		array<array<int, MAX_POINTS>, MAX_POINTS> matrix = result.second;
+
+		size_t point_count = static_cast<size_t>(count_if(points.begin(), points.end(),
+			[](const pair<int, int>& p) { return p.first != 0 || p.second != 0; }));
+
 
 		if (out_option == '1') {
-			drawWithSFML(points, matrix);
+			drawWithSFML(points, point_count, matrix);
 		}
 		else {
 			string filePath = getPathFromUser("Укажите файл для вывода результатов работы программы", MyConstants::defaultTask417Output);
-			//filePath.append("output.png");
-			saveDrawingToFile(points, matrix, filePath);
+			saveDrawingToFile(points, point_count, matrix, filePath);
 		}
 
 		if (in_option == '1') {
