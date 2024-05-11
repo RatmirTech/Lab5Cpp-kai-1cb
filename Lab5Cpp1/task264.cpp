@@ -85,7 +85,8 @@ extern void writeConsole(const string& output) {
 	cout << "Результат: " << output << endl;
 }
 
-extern void writeFile(const string& output, const string& fileName) {
+extern void writeFile(const string& output, string& fileName) {
+	fileName += ".txt";
 	ofstream file(fileName);
 
 	if (file.is_open()) {
@@ -103,8 +104,7 @@ extern void writeFile(const string& output, const string& fileName) {
 void init264() {
 	regex valid_input("^[12]$");
 	string input;
-	char in_option, out_option;
-	char repeat_option = '1';
+	char in_option, out_option, repeat_option = '1';
 
 	do {
 		do {
@@ -144,6 +144,7 @@ void init264() {
 		}
 		else {
 			string filePath = getUserPath("Укажите файл для вывода результатов работы программы", MyConstants::defaultTask264Output);
+			filePath += ".txt";
 			ofstream testFile(filePath, ios::out | ios::trunc);
 			writeFile(outputData, filePath);
 		}

@@ -1,11 +1,11 @@
 #pragma once
 
-//#include <string>
+#include <string>
 
-//std::string readFromConsole();
-//std::string removeParentheses(const std::string& input);
-//std::string readFromFile(const std::string& fileName);
-//std::string getPathFromUser(const std::string& prompt, const std::string& defaultPath);
-//void writeToConsole(const std::string& output);
-//void writeToFile(const std::string& output, const std::string& fileName);
+std::string readConsole();
+std::string removeParentheses(const std::string& input);
+std::string readFile(const std::string& fileName);
+std::string getUserPath(const std::string& prompt, const std::string& defaultPath);
+void writeConsole(const std::string& output);
+void writeFile(const std::string& output, const std::string& fileName);
 void init264();

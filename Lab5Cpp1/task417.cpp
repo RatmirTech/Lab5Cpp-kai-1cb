@@ -13,7 +13,7 @@
 using namespace std;
 using namespace sf;
 
-void saveDrawingToFile(const array<pair<int, int>, MAX_POINTS>& points, size_t point_count, const array<array<int, MAX_POINTS>, MAX_POINTS>& matrix, const string& filePath) {
+void saveDrawingToFile(const array<pair<int, int>, MAX_POINTS>& points, size_t point_count, const array<array<int, MAX_POINTS>, MAX_POINTS>& matrix, string& filePath) {
 	const int width = 800, height = 600;
 	RenderTexture renderTexture;
 	renderTexture.create(width, height);
@@ -43,6 +43,7 @@ void saveDrawingToFile(const array<pair<int, int>, MAX_POINTS>& points, size_t p
 
 	Texture texture = renderTexture.getTexture();
 	Image image = texture.copyToImage();
+	filePath += ".png";
 	image.saveToFile(filePath);
 }
 
@@ -95,7 +96,7 @@ void printPointsAndMatrix(const array<pair<int, int>, MAX_POINTS>& points, const
 	}
 }
 
-string readFromConsole() {
+string readFromConsole(int& pointCount) {
 	regex pattern("^([1-9][0-9]* [1-9][0-9]*(, [1-9][0-9]* [1-9][0-9]*)*)$");
 	string input;
 	array<pair<int, int>, MAX_POINTS> points;
@@ -125,23 +126,7 @@ string readFromConsole() {
 	for (int i = 0; i < point_count; i++) {
 		result << points[i].first << ' ' << points[i].second << '\n';
 	}
-
-	//array<array<int, MAX_POINTS>, MAX_POINTS> matrix;
-	//for (int i = 0; i < point_count; ++i) {
-	//	for (int j = 0; j < point_count; ++j) {
-	//		matrix[i][j] = (i != j) ? (rand() % 2) : 0;
-	//	}
-	//}
-
-	//for (int i = 0; i < point_count; i++) {
-	//	for (int j = 0; j < point_count; j++) {
-	//		result << matrix[i][j] << ' ';
-	//	}
-	//	result << '\n';
-	//}
-
-	//cout << "Входные данные: " << endl << result.str() << endl << "Конец входных данных" << endl;
-
+	pointCount = point_count;
 	return result.str();
 }
 
@@ -214,27 +199,13 @@ string readFromFile(const string& filePath) {
 	return buffer.str();
 }
 
-void writeToConsole(const string& outputData) {
-	cout << "Результат: " << outputData << endl;
-}
-
-void writeToFile(const string& outputData, const string& filePath) {
-	ofstream file(filePath, ios::out | ios::trunc);
-	if (file.is_open()) {
-		file << outputData;
-		file.close();
-	}
-	else {
-		cerr << "Не удалось открыть файл для записи: " << filePath << endl;
-	}
-}
-
 string getPathFromUser(const string& prompt, const string& defaultPath) {
 	string path;
 	cout << prompt << " [" << defaultPath << "]: ";
 	getline(cin, path);
 	return (path.empty() ? defaultPath : path);
 }
+
 pair<array<pair<int, int>, MAX_POINTS>, array<array<int, MAX_POINTS>, MAX_POINTS>> processData(const string& data, bool generateMatrix) {
 	stringstream ss(data);
 	int n;
@@ -288,10 +259,61 @@ pair<array<pair<int, int>, MAX_POINTS>, array<array<int, MAX_POINTS>, MAX_POINTS
 	return { points, matrix };
 }
 
+bool inputMatrixBody(double**& matrix, int& rows, int& cols) {
+	matrix = new double* [rows];
+	regex valid_format("^\\s*([-]?\\d*\\.?\\d+(\\s+|$)){" + to_string(cols) + "}$");
+
+	for (int i = 0; i < rows; i++) {
+		string line;
+		cout << "Введите строку " << (i + 1) << " матрицы (должно быть ровно " << cols << " чисел): ";
+		getline(cin, line);
+
+		if (!regex_match(line, valid_format)) {
+			cout << "Ошибка: некорректный формат строки. Попробуйте снова." << endl;
+			i--;
+			continue;
+		}
+
+		matrix[i] = new double[cols];
+		istringstream iss(line);
+		for (int j = 0; j < cols; j++) {
+			if (!(iss >> matrix[i][j])) {
+				cout << "Ошибка при чтении числа. Проверьте корректность данных." << endl;
+				delete[] matrix[i];
+				i--;
+				break;
+			}
+		}
+	}
+	return true;
+}
+
+bool inputAdjacencyMatrix(string& dataBuffer, int& pointCount) {
+	regex valid_format("^\\s*(0|1)(\\s+(0|1)){" + to_string(pointCount - 1) + "}\\s*$");
+
+	for (int i = 0; i < pointCount; i++) {
+		string line;
+		cout << "Введите строку " << (i + 1) << " матрицы смежности (должно быть ровно " << pointCount << " чисел из 0 или 1): ";
+		getline(cin, line);
+
+		if (!regex_match(line, valid_format)) {
+			cout << "Ошибка: некорректный формат строки. Допустимы только 0 или 1. Попробуйте снова." << endl;
+			i--;
+			continue;
+		}
+
+		if (!dataBuffer.empty()) {
+			dataBuffer += "\n";
+		}
+		dataBuffer += line;
+	}
+	return true;
+}
+
 void init417() {
 	regex valid_input("^[12]$");
 	string input;
-	char in_option, out_option;
+	char in_option, out_option, gen_option;
 	char repeat_option = '1';
 	do {
 		do {
@@ -305,11 +327,20 @@ void init417() {
 			getline(cin, input);
 		} while (!regex_match(input, valid_input));
 		out_option = input[0];
-
-		bool generateMatrix{ (in_option == '1') };
+		int pointCount{ 0 };
+		bool generateMatrix{ true };
 		string dataBuffer;
 		if (in_option == '1') {
-			dataBuffer = readFromConsole();
+			dataBuffer = readFromConsole(pointCount);
+			do {
+				cout << "Введите '1' для ручного ввода матрицы, '2' для генерации матрицы ";
+				getline(cin, input);
+			} while (!regex_match(input, valid_input));
+			gen_option = input[0];
+			if (gen_option == '1') {
+				inputAdjacencyMatrix(dataBuffer, pointCount);
+				generateMatrix = false;
+			}
 		}
 		else {
 			string filePath = getPathFromUser("Укажите файл для ввода исходных данных для работы программы", MyConstants::defaultTask417Input);
